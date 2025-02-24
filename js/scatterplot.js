@@ -1,150 +1,169 @@
 class Scatterplot {
-
-    /**
-     * Class constructor with basic chart configuration
-     * @param {Object}
-     * @param {Array}
-     */
-    constructor(_config, _data) {
+  constructor(_config, _data) {
       this.config = {
-        parentElement: _config.parentElement,
-        colorScale: _config.colorScale,
-        containerWidth: _config.containerWidth || 500,
-        containerHeight: _config.containerHeight || 300,
-        margin: _config.margin || {top: 25, right: 20, bottom: 20, left: 35},
-        tooltipPadding: _config.tooltipPadding || 15
-      }
+          parentElement: _config.parentElement,
+          colorScale: _config.colorScale,
+          containerWidth: _config.containerWidth || 700,
+          containerHeight: _config.containerHeight || 400,
+          margin: _config.margin || {top: 50, right: 20, bottom: 50, left: 50},
+          tooltipPadding: _config.tooltipPadding || 15,
+          pointOpacity: 0.6,
+          pointSize: 6
+      };
       this.data = _data;
+      this.displayData = _data; // Store currently displayed data
+      this.selectedX = "percent_poverty";
+      this.selectedY = "percent_high_blood_pressure";
+      this.selectedPoints = new Set(); // Store selected points
       this.initVis();
-    }
-    
-    /**
-     * We initialize scales/axes and append static elements, such as axis titles.
-     */
-    initVis() {
+  }
+
+  initVis() {
       let vis = this;
-  
-      // Calculate inner chart size. Margin specifies the space around the actual chart.
+
       vis.width = vis.config.containerWidth - vis.config.margin.left - vis.config.margin.right;
       vis.height = vis.config.containerHeight - vis.config.margin.top - vis.config.margin.bottom;
-  
-      vis.xScale = d3.scaleLinear()
-          .range([0, vis.width]);
-  
-      vis.yScale = d3.scaleLinear()
-          .range([vis.height, 0]);
-  
-      // Initialize axes
-      vis.xAxis = d3.axisBottom(vis.xScale)
-          .ticks(6)
-          .tickSize(-vis.height - 10)
-          .tickPadding(10)
-          .tickFormat(d => d + ' km');
-  
-      vis.yAxis = d3.axisLeft(vis.yScale)
-          .ticks(6)
-          .tickSize(-vis.width - 10)
-          .tickPadding(10);
-  
-      // Define size of SVG drawing area
+
+      vis.xScale = d3.scaleLinear().range([0, vis.width]);
+      vis.yScale = d3.scaleLinear().range([vis.height, 0]);
+
+      vis.xAxis = d3.axisBottom(vis.xScale).ticks(10).tickSize(-vis.height - 10).tickPadding(10);
+      vis.yAxis = d3.axisLeft(vis.yScale).ticks(10).tickSize(-vis.width - 10).tickPadding(10);
+
       vis.svg = d3.select(vis.config.parentElement)
           .attr('width', vis.config.containerWidth)
           .attr('height', vis.config.containerHeight);
-  
-      // Append group element that will contain our actual chart 
-      // and position it according to the given margin config
+
       vis.chart = vis.svg.append('g')
           .attr('transform', `translate(${vis.config.margin.left},${vis.config.margin.top})`);
-  
-      // Append empty x-axis group and move it to the bottom of the chart
+
       vis.xAxisG = vis.chart.append('g')
           .attr('class', 'axis x-axis')
           .attr('transform', `translate(0,${vis.height})`);
-      
-      // Append y-axis group
+
       vis.yAxisG = vis.chart.append('g')
           .attr('class', 'axis y-axis');
-  
-      // Append both axis titles
-      vis.chart.append('text')
+
+      vis.xLabel = vis.chart.append('text')
           .attr('class', 'axis-title')
-          .attr('y', vis.height - 15)
-          .attr('x', vis.width + 10)
-          .attr('dy', '.71em')
-          .style('text-anchor', 'end')
-          .text('Distance');
-  
-      vis.svg.append('text')
+          .attr('x', vis.width / 2)
+          .attr('y', vis.height + 40)
+          .attr('text-anchor', 'middle');
+
+      vis.yLabel = vis.chart.append('text')
           .attr('class', 'axis-title')
-          .attr('x', 0)
-          .attr('y', 0)
-          .attr('dy', '.71em')
-          .text('Hours');
+          .attr('x', -vis.height / 2)
+          .attr('y', -40)
+          .attr('transform', 'rotate(-90)')
+          .attr('text-anchor', 'middle');
+  }
+
+  updateVis(filteredData = null) {
+    let vis = this;
+    vis.data = filteredData || vis.data;
+    if (filteredData !== null) {
+        vis.data = filteredData;
     }
-  
-    /**
-     * Prepare the data and scales before we render it.
-     */
-    updateVis() {
-      let vis = this;
-      
-      // Specificy accessor functions
-      vis.colorValue = d => d.difficulty;
-      vis.xValue = d => d.percent_poverty;
-      vis.yValue = d => d.percent_high_blood_pressure;
-  
-      // Set the scale input domains
-      vis.xScale.domain([0, d3.max(vis.data, vis.xValue)]);
-      vis.yScale.domain([0, d3.max(vis.data, vis.yValue)]);
-  
-      vis.renderVis();
+
+    vis.xValue = d => +d[vis.selectedX];
+    vis.yValue = d => +d[vis.selectedY];
+
+    vis.filteredData = vis.data.filter(d => vis.xValue(d) !== -1 && vis.yValue(d) !== -1);
+
+    if (vis.filteredData.length === 0) {
+        vis.xScale.domain([0, 10]);
+        vis.yScale.domain([0, 10]);
+    } else {
+        vis.xScale.domain([0, d3.max(vis.filteredData, vis.xValue) * 1.1]);
+        vis.yScale.domain([0, d3.max(vis.filteredData, vis.yValue) * 1.1]);
     }
-  
-    /**
-     * Bind data to visual elements.
-     */
-    renderVis() {
+
+    vis.xLabel.text(vis.selectedX.replace(/_/g, " "));
+    vis.yLabel.text(vis.selectedY.replace(/_/g, " "));
+
+    vis.renderVis();
+}
+
+
+  renderVis() {
       let vis = this;
-  
-      // Add circles
+
       const circles = vis.chart.selectAll('.point')
-          .data(vis.data, d => d.trail)
-        .join('circle')
+          .data(vis.filteredData, d => d.trail)
+          .join('circle')
           .attr('class', 'point')
-          .attr('r', 4)
+          .attr('r', vis.config.pointSize)
           .attr('cy', d => vis.yScale(vis.yValue(d)))
           .attr('cx', d => vis.xScale(vis.xValue(d)))
-          .attr('fill', d => vis.config.colorScale(vis.colorValue(d)));
-  
-      // Tooltip event listeners
-      circles
-          .on('mouseover', (event,d) => {
-            d3.select('#tooltip')
-              .style('display', 'block')
-              .style('left', (event.pageX + vis.config.tooltipPadding) + 'px')   
-              .style('top', (event.pageY + vis.config.tooltipPadding) + 'px')
-              .html(`
-                <div class="tooltip-title">${d.county_name}</div>
-                <div><i>${d.state}</i></div>
-                <ul>
-                  <li>${d.distance} km, ~${d.time} hours</li>
-                  <li>${d.difficulty}</li>
-                  <li>${d.season}</li>
-                </ul>
-              `);
+          .attr('fill', d => vis.selectedPoints.size === 0 || vis.selectedPoints.has(d) 
+              ? vis.config.colorScale(d.difficulty) 
+              : '#d3d3d3')
+          .attr('opacity', d => vis.selectedPoints.size === 0 || vis.selectedPoints.has(d) 
+              ? 1 
+              : 0.3)
+          .attr('stroke', d => vis.selectedPoints.has(d) ? '#ff5733' : '#368cb2') 
+          .attr('stroke-width', 1.5)
+          .on('click', (event, d) => {
+            event.stopPropagation();
+        
+            if (vis.selectedPoints.has(d)) {
+                vis.selectedPoints.delete(d);
+            } else {
+                vis.selectedPoints.add(d);
+            }
+        
+            vis.updateHighlighting();
+        
+            // Pass selected data to the histogram
+            const selectedData = Array.from(vis.selectedPoints);
+            histogram.updateVis(selectedData.length > 0 ? selectedData : vis.data);
+            choroplethmap.updateVis(selectedData.length > 0 ? selectedData : vis.data);
+
+        });
+        
+
+      // Click anywhere outside to reset selection
+      vis.svg.on('click', () => {
+        vis.selectedPoints.clear();
+        vis.updateHighlighting();
+        histogram.updateVis(vis.data); // Pass full dataset when selection is cleared
+        choroplethmap.updateVis(vis.data); // Pass full dataset when selection is cleared
+        
+    });
+    
+
+      // Tooltip behavior
+      circles.on('mouseover', (event, d) => {
+              d3.select('#tooltip')
+                  .style('display', 'block')
+                  .style('left', (event.pageX + vis.config.tooltipPadding) + 'px')
+                  .style('top', (event.pageY + vis.config.tooltipPadding) + 'px')
+                  .html(`
+                      <div class="tooltip-title">${d.county_name}</div>
+                      <div><i>${d.state}</i></div>
+                      <ul>
+                          <li>${vis.selectedY.replace(/_/g, " ")}: ${vis.yValue(d).toFixed(2)}%</li>
+                          <li>${vis.selectedX.replace(/_/g, " ")}: ${vis.xValue(d).toFixed(2)}%</li>
+                      </ul>
+                  `);
           })
           .on('mouseleave', () => {
-            d3.select('#tooltip').style('display', 'none');
+              d3.select('#tooltip').style('display', 'none');
           });
-      
-      // Update the axes/gridlines
-      // We use the second .call() to remove the axis and just show gridlines
-      vis.xAxisG
-          .call(vis.xAxis)
-          .call(g => g.select('.domain').remove());
-  
-      vis.yAxisG
-          .call(vis.yAxis)
-          .call(g => g.select('.domain').remove())
-    }
+
+      vis.xAxisG.call(vis.xAxis).call(g => g.select('.domain').remove());
+      vis.yAxisG.call(vis.yAxis).call(g => g.select('.domain').remove());
   }
+
+  updateHighlighting() {
+      let vis = this;
+
+      vis.chart.selectAll('.point')
+          .attr('fill', d => vis.selectedPoints.size === 0 || vis.selectedPoints.has(d) 
+              ? vis.config.colorScale(d.difficulty) 
+              : '#d3d3d3')
+          .attr('opacity', d => vis.selectedPoints.size === 0 || vis.selectedPoints.has(d) 
+              ? 1 
+              : 0.3);
+  }
+}
