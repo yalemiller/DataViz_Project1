@@ -178,11 +178,11 @@ class Histogram {
 function updateOtherVisualizations(selectedBins) {
   if (!selectedBins.length) {
       scatterplot.updateVis(data);
-      choroplethMap.updateVis(data); // Reset to all counties
+      choroplethMap.updateVis(null); // Reset map to all counties
       return;
   }
 
-  // Filter data based on the selected histogram bin
+  // Filter data based on selected histogram bin
   const filteredData = data.filter(d =>
       selectedBins.some(binStart => 
           d.percent_poverty >= binStart && d.percent_poverty < binStart + 5
@@ -190,8 +190,10 @@ function updateOtherVisualizations(selectedBins) {
   );
 
   scatterplot.updateVis(filteredData.length ? filteredData : data);
-  choroplethMap.updateVis(filteredData.length ? filteredData : data);
+  choroplethMap.updateVis(filteredData.length ? filteredData : null);
 }
+
+
 
 
 

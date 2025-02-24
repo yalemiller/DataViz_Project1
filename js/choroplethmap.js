@@ -168,15 +168,30 @@ class ChoroplethMap {
       .text(vis.selectedAttr2.replace(/_/g, " "));
   }
 
-  updateVis() {
+  updateVis(filteredData = null) {
     let vis = this;
 
+    // Get all counties
+    let dataToUse = topojson.feature(vis.us, vis.us.objects.counties).features;
+
+    // If filtered data exists, create a Set of selected counties' FIPS codes
+    let selectedFIPS = new Set();
+    if (filteredData) {
+        selectedFIPS = new Set(filteredData.map(d => d.fips));
+    }
+
     vis.counties = vis.g.selectAll(".county")
-      .data(topojson.feature(vis.us, vis.us.objects.counties).features)
+      .data(dataToUse)
       .join("path")
       .attr("class", "county")
       .attr("d", vis.path)
       .attr("fill", d => {
+        // Gray out counties that are not selected
+        if (filteredData && !selectedFIPS.has(d.id)) {
+          return "#d3d3d3";
+        }
+
+        // Otherwise, color based on attributes
         const attr1 = d.properties[vis.selectedAttr1] || 0;
         const attr2 = d.properties[vis.selectedAttr2] || 0;
 
@@ -208,7 +223,9 @@ class ChoroplethMap {
       })
       .on("mouseleave", () => vis.tooltip.style("display", "none"));
 
-      if (vis.us.objects.states) {
+    // Draw state borders
+    vis.g.select("#state-borders").remove();
+    if (vis.us.objects.states) {
         vis.g.append("path")
           .datum(topojson.mesh(vis.us, vis.us.objects.states, (a, b) => a !== b))
           .attr("id", "state-borders")
@@ -216,18 +233,10 @@ class ChoroplethMap {
           .attr("fill", "none")
           .attr("stroke", "#000")
           .attr("stroke-width", "1px");
-      } else {
+    } else {
         console.error("State borders data is missing.");
-      }
+    }
 
     vis.drawLegend();
-  }
-
-  setSelectedAttributes(attr1, attr2) {
-    this.selectedAttr1 = attr1;
-    this.selectedAttr2 = attr2;
-    this.updateVis();
-  }
-
-  
+}
 }

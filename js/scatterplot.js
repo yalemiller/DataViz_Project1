@@ -114,22 +114,28 @@ class Scatterplot {
         
             vis.updateHighlighting();
         
-            // Pass selected data to the histogram
+            // Convert selected points to a list of selected counties
             const selectedData = Array.from(vis.selectedPoints);
+        
+            // Update the histogram with selected data or reset if empty
             histogram.updateVis(selectedData.length > 0 ? selectedData : vis.data);
-            choroplethmap.updateVis(selectedData.length > 0 ? selectedData : vis.data);
-
+        
+            // Update the choropleth map to reflect selected counties
+            choroplethMap.updateVis(selectedData.length > 0 ? selectedData : null);
         });
+        
         
 
       // Click anywhere outside to reset selection
       vis.svg.on('click', () => {
         vis.selectedPoints.clear();
         vis.updateHighlighting();
-        histogram.updateVis(vis.data); // Pass full dataset when selection is cleared
-        choroplethmap.updateVis(vis.data); // Pass full dataset when selection is cleared
-        
+    
+        // Reset histogram and choropleth to show full dataset
+        histogram.updateVis(vis.data);
+        choroplethMap.updateVis(null);
     });
+    
     
 
       // Tooltip behavior
