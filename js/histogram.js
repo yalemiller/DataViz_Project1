@@ -60,10 +60,12 @@ class Histogram {
 
   updateVis(filteredData = null) {
     let vis = this;
-    vis.data = filteredData || vis.data;
 
-    const data1 = vis.data.map(d => d[vis.selectedData1]);
-    const data2 = vis.data.map(d => d[vis.selectedData2]);
+    // Preserve the original dataset for resetting
+    vis.displayData = filteredData ? filteredData : vis.data;
+
+    const data1 = vis.displayData.map(d => d[vis.selectedData1]);
+    const data2 = vis.displayData.map(d => d[vis.selectedData2]);
 
     const histogram = d3.histogram().domain([0, 100]).thresholds(20);
     const bins1 = histogram(data1);
@@ -80,6 +82,7 @@ class Histogram {
 
     vis.renderVis();
 }
+
 
 
   renderVis() {

@@ -11,59 +11,60 @@ class ChoroplethMap {
       legendRectWidth: 150,
     };
 
-    // Normalize Data
+    //Data sets
     this.data = this.normalizeData(_data);
     this.us = _data;
+    this.selectedCounties = new Set();
     this.active = d3.select(null);
 
+    //Default Attributes
     this.selectedAttr1 = "percent_poverty";
     this.selectedAttr2 = "percent_high_blood_pressure";
 
-     this.selectedCounties = new Set(); // Track selected counties from scatterplot
 
     this.initVis();
   }
 
   normalizeData(data) {
     let attributes = [
-      "percent_poverty",
-      "percent_high_blood_pressure",
-      "percent_stroke",
-      "percent_high_cholesterol",
-      "percent_eldery",
+        "percent_poverty",
+        "percent_high_blood_pressure",
+        "percent_stroke",
+        "percent_high_cholesterol",
+        "percent_eldery",
     ];
 
     let minMax = {};
 
     attributes.forEach((attr) => {
-      let values = data.objects.counties.geometries
-        .map((d) => d.properties[attr])
-        .filter((d) => d !== undefined);
-      minMax[attr] = {
-        min: Math.min(...values),
-        max: Math.max(...values),
-      };
+        let values = data.objects.counties.geometries
+            .map((d) => d.properties[attr])
+            .filter((d) => d !== undefined);
+        minMax[attr] = {
+            min: Math.min(...values),
+            max: Math.max(...values),
+        };
     });
 
     data.objects.counties.geometries.forEach((d) => {
-      attributes.forEach((attr) => {
-        if (d.properties[attr] !== undefined) {
-          d.properties[attr] = this.scaleValue(
-            d.properties[attr],
-            minMax[attr].min,
-            minMax[attr].max
-          );
-        }
-      });
+        attributes.forEach((attr) => {
+            if (d.properties[attr] !== undefined) {
+                d.properties[`original_${attr}`] = d.properties[attr]; // Store original percentage
+                d.properties[attr] = this.scaleValue(
+                    d.properties[attr],
+                    minMax[attr].min,
+                    minMax[attr].max
+                );
+            }
+        });
     });
 
-    
-
     return data;
-  }
+}
+
 
   scaleValue(value, min, max) {
-    return Math.round(((value - min) / (max - min)) * 99) + 1; // Scale to 1-100
+    return Math.round(((value - min) / (max - min)) * 99) + 1; // Scale from 1-100
   }
 
   initVis() {
@@ -151,92 +152,141 @@ class ChoroplethMap {
       });
     });
 
+    // X-axis label (bottom, now left-aligned to the color grid)
     legendGroup.append("text")
-      .attr("x", -legendSize + 10)
-      .attr("y", legendHeight + 12)
-      .attr("text-anchor", "end")
+      .attr("x", 0)  // Left-aligned to the first color box
+      .attr("y", legendHeight + 35)  // Move below the legend
+      .attr("text-anchor", "start")  // Align left
       .style("font-size", "14px")
-      .style("writing-mode", "vertical-rl")
-      .style("text-orientation", "upright")
-      .text(vis.selectedAttr1.replace(/_/g, " "));
+      .text(vis.selectedAttr2.replace(/_/g, " ")); // "percent high blood pressure"
 
+    // Y-axis label (left side, properly centered)
     legendGroup.append("text")
-      .attr("x", 0)
-      .attr("y", legendHeight + 20)
-      .attr("text-anchor", "start")
+      .attr("x", -legendHeight / 2)  // Centered alongside the legend
+      .attr("y", -25)  // Adjust spacing from grid
+      .attr("transform", "rotate(-90)")  // Rotate 90 degrees
+      .attr("text-anchor", "middle")
       .style("font-size", "14px")
-      .text(vis.selectedAttr2.replace(/_/g, " "));
+      .text(vis.selectedAttr1.replace(/_/g, " ")); // "percent poverty"
+}
+
+updateVis(filteredData = null) {
+  let vis = this;
+
+  // Get all counties from dataset
+  let dataToUse = topojson.feature(vis.us, vis.us.objects.counties).features;
+
+  // If filtered data exists, sync it with selected counties
+  if (filteredData) {
+      vis.selectedCounties = new Set(filteredData.map(d => d.fips));
   }
 
-  updateVis(filteredData = null) {
-    let vis = this;
-
-    // Get all counties
-    let dataToUse = topojson.feature(vis.us, vis.us.objects.counties).features;
-
-    // If filtered data exists, create a Set of selected counties' FIPS codes
-    let selectedFIPS = new Set();
-    if (filteredData) {
-        selectedFIPS = new Set(filteredData.map(d => d.fips));
-    }
-
-    vis.counties = vis.g.selectAll(".county")
+  vis.counties = vis.g.selectAll(".county")
       .data(dataToUse)
       .join("path")
       .attr("class", "county")
       .attr("d", vis.path)
       .attr("fill", d => {
-        // Gray out counties that are not selected
-        if (filteredData && !selectedFIPS.has(d.id)) {
-          return "#d3d3d3";
-        }
+          const fips = d.id;
 
-        // Otherwise, color based on attributes
-        const attr1 = d.properties[vis.selectedAttr1] || 0;
-        const attr2 = d.properties[vis.selectedAttr2] || 0;
+          // If some counties are selected, gray out unselected ones
+          if (vis.selectedCounties.size > 0 && !vis.selectedCounties.has(fips)) {
+              return "#d3d3d3"; // Grayed out
+          }
 
-        if (attr1 <= 33 && attr2 <= 33) return "#fcf1e6";
-        if (attr1 <= 66 && attr2 <= 33) return "#a3cfe5";
-        if (attr1 > 66 && attr2 <= 33) return "#4fade0";
+          // Otherwise, color based on attributes
+          const attr1 = d.properties[vis.selectedAttr1] || 0;
+          const attr2 = d.properties[vis.selectedAttr2] || 0;
 
-        if (attr1 <= 33 && attr2 <= 66) return "#f0b48d";
-        if (attr1 <= 66 && attr2 <= 66) return "#ac998e";
-        if (attr1 > 66 && attr2 <= 66) return "#4e7a8d";
+          if (attr1 <= 33 && attr2 <= 33) return "#fcf1e6";
+          if (attr1 <= 66 && attr2 <= 33) return "#a3cfe5";
+          if (attr1 > 66 && attr2 <= 33) return "#4fade0";
 
-        if (attr1 <= 33 && attr2 > 66) return "#e47b41";
-        if (attr1 <= 66 && attr2 > 66) return "#a1623f";
-        if (attr1 > 66 && attr2 > 66) return "#59483f";
+          if (attr1 <= 33 && attr2 <= 66) return "#f0b48d";
+          if (attr1 <= 66 && attr2 <= 66) return "#ac998e";
+          if (attr1 > 66 && attr2 <= 66) return "#4e7a8d";
 
-        return "gray";
+          if (attr1 <= 33 && attr2 > 66) return "#e47b41";
+          if (attr1 <= 66 && attr2 > 66) return "#a1623f";
+          if (attr1 > 66 && attr2 > 66) return "#59483f";
+
+          return "gray";
       })
+      .on("click", (event, d) => {
+        event.stopPropagation();
+    
+        const fips = d.id;
+    
+        // Toggle county selection
+        if (vis.selectedCounties.has(fips)) {
+            vis.selectedCounties.delete(fips);
+        } else {
+            vis.selectedCounties.add(fips);
+        }
+    
+        // Update the choropleth visualization
+        vis.updateVis();
+    
+        // Check if all selections are cleared
+        if (vis.selectedCounties.size === 0) {
+            histogram.updateVis(histogram.data);  // ✅ Reset histogram to full dataset
+            scatterplot.updateVis(scatterplot.data);
+            return;
+        }
+    
+        // Filter the dataset based on selected counties
+        const selectedData = vis.selectedCounties.size > 0
+            ? histogram.data.filter(d => vis.selectedCounties.has(d.fips))
+            : histogram.data;  // Reset to full data if no selection
+    
+        histogram.updateVis(selectedData);
+        scatterplot.updateVis(selectedData);
+    })
+    
+    
       .on("mousemove", (event, d) => {
-        vis.tooltip
-          .style("display", "block")
-          .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
-          .style("top", `${event.pageY + vis.config.tooltipPadding}px`)
-          .html(`
-            <div><strong>County:</strong> ${d.properties.county_name || "Unknown"}</div>
-            <div><strong>State:</strong> ${d.properties.state || "Unknown"}</div>
-            <div><strong>${vis.selectedAttr1.replace(/_/g, " ")}:</strong> ${d.properties[vis.selectedAttr1] || "N/A"}%</div>
-            <div><strong>${vis.selectedAttr2.replace(/_/g, " ")}:</strong> ${d.properties[vis.selectedAttr2] || "N/A"}%</div>
-          `);
+          vis.tooltip
+              .style("display", "block")
+              .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
+              .style("top", `${event.pageY + vis.config.tooltipPadding}px`)
+              .html(`
+                  <div><strong>County:</strong> ${d.properties.county_name || "Unknown"}</div>
+                  <div><strong>State:</strong> ${d.properties.state || "Unknown"}</div>
+                  <div><strong>${vis.selectedAttr1.replace(/_/g, " ")}:</strong> ${d.properties[`original_${vis.selectedAttr1}`] || "N/A"}%</div>
+<div><strong>${vis.selectedAttr2.replace(/_/g, " ")}:</strong> ${d.properties[`original_${vis.selectedAttr2}`] || "N/A"}%</div>
+
+              `);
       })
       .on("mouseleave", () => vis.tooltip.style("display", "none"));
 
-    // Draw state borders
-    vis.g.select("#state-borders").remove();
-    if (vis.us.objects.states) {
-        vis.g.append("path")
+  // Reset selection when clicking outside the map
+  vis.svg.on("click", () => {
+    vis.selectedCounties.clear();
+    vis.updateVis();
+    histogram.updateVis(histogram.data); // ✅ Ensures histogram resets when clicking outside
+    scatterplot.updateVis(scatterplot.data);
+});
+
+
+  // Remove county borders
+  vis.g.select("#state-borders").remove();
+  if (vis.us.objects.states) {
+      vis.g.append("path")
           .datum(topojson.mesh(vis.us, vis.us.objects.states, (a, b) => a !== b))
           .attr("id", "state-borders")
           .attr("d", vis.path)
           .attr("fill", "none")
-          .attr("stroke", "#000")
-          .attr("stroke-width", "1px");
-    } else {
-        console.error("State borders data is missing.");
-    }
-
-    vis.drawLegend();
+          .attr("stroke", "none"); // ✅ Removes the black outline
+  } else {
+      console.error("State borders data is missing.");
+  }
 }
+
+  setSelectedAttributes(attr1, attr2) {
+    this.selectedAttr1 = attr1;
+    this.selectedAttr2 = attr2;
+    this.updateVis();
+  }
+
+  
 }

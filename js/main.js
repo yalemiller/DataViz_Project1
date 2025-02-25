@@ -28,11 +28,12 @@ d3.csv('data/data.csv')
       .style("top", "10px")
       .style("left", "10px") // Move dropdown to the left
       .html(`
-        <h3>Select Data for Visualization</h3>
-        <label for="data1">Select Data 1:</label>
+        <h1>Poverty vs Health Issues in the United States</h1>
+        <h3>Data Provided by the CDC 2024 Health Data </h3>
+        <label for="data1">Select Attribute 1:</label>
         <select id="data1"></select>
 
-        <label for="data2">Select Data 2:</label>
+        <label for="data2">Select Attribute 2:</label>
         <select id="data2"></select>
       `);
 
