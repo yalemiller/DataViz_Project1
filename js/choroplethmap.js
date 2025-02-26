@@ -170,17 +170,24 @@ class ChoroplethMap {
       .text(vis.selectedAttr1.replace(/_/g, " ")); // "percent poverty"
 }
 
-updateVis(filteredData = null) {
+updateVis(filteredData = null, isUserSelection = false) {
   let vis = this;
 
   // Get all counties from dataset
   let dataToUse = topojson.feature(vis.us, vis.us.objects.counties).features;
 
-  // Check if filteredData exists and is non-empty; otherwise, reset
-  if (filteredData && filteredData.length > 0) {
-      vis.selectedCounties = new Set(filteredData.map(d => d.fips));
-  } else {
-      vis.selectedCounties.clear();  // Reset selection
+  // Ensure vis.selectedCounties is initialized
+  if (!vis.selectedCounties) {
+      vis.selectedCounties = new Set();
+  }
+
+  // Handle external updates (e.g., from histogram or scatterplot)
+  if (!isUserSelection) {  
+      if (filteredData && filteredData.length > 0) {
+          vis.selectedCounties = new Set(filteredData.map(d => d.fips));
+      } else {
+          vis.selectedCounties.clear(); // Reset only on external updates
+      }
   }
 
   vis.counties = vis.g.selectAll(".county")
@@ -215,50 +222,51 @@ updateVis(filteredData = null) {
           return "gray";
       })
       .on("click", (event, d) => {
-        event.stopPropagation();
+          event.stopPropagation();
 
-        const fips = d.id;
+          const fips = d.id;
 
-        // Toggle county selection
-        if (vis.selectedCounties.has(fips)) {
-            vis.selectedCounties.delete(fips);
-        } else {
-            vis.selectedCounties.add(fips);
-        }
+          // Toggle county selection
+          if (vis.selectedCounties.has(fips)) {
+              vis.selectedCounties.delete(fips);
+          } else {
+              vis.selectedCounties.add(fips);
+          }
 
-        // Update the visualization with new selections
-        vis.updateVis();
+          // Update the visualization with new selections
+          vis.updateVis(null, true); // Pass `true` to indicate user selection
 
-        // Handle dataset filtering for other visualizations
-        if (vis.selectedCounties.size === 0) {
-            histogram.updateVis(histogram.data); // Reset histogram
-            scatterplot.updateVis(scatterplot.data); // Reset scatterplot
-        } else {
-            const selectedData = histogram.data.filter(d => vis.selectedCounties.has(d.fips));
-            histogram.updateVis(selectedData);
-            scatterplot.updateVis(selectedData);
-        }
-    })
-    .on("mousemove", (event, d) => {
-        vis.tooltip
-            .style("display", "block")
-            .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
-            .style("top", `${event.pageY + vis.config.tooltipPadding}px`)
-            .html(`
-                <div><strong>County:</strong> ${d.properties.county_name || "Unknown"}</div>
-                <div><strong>State:</strong> ${d.properties.state || "Unknown"}</div>
-                <div><strong>${vis.selectedAttr1.replace(/_/g, " ")}:</strong> ${d.properties[`original_${vis.selectedAttr1}`] || "N/A"}%</div>
-                <div><strong>${vis.selectedAttr2.replace(/_/g, " ")}:</strong> ${d.properties[`original_${vis.selectedAttr2}`] || "N/A"}%</div>
-            `);
-    })
-    .on("mouseleave", () => vis.tooltip.style("display", "none"));
+          // Handle dataset filtering for other visualizations
+          if (vis.selectedCounties.size === 0) {
+              histogram.updateVis(histogram.data); // Reset histogram
+              scatterplot.updateVis(scatterplot.data); // Reset scatterplot
+              return;
+          }
+
+          const selectedData = histogram.data.filter(d => vis.selectedCounties.has(d.fips));
+          histogram.updateVis(selectedData);
+          scatterplot.updateVis(selectedData);
+      })
+      .on("mousemove", (event, d) => {
+          vis.tooltip
+              .style("display", "block")
+              .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
+              .style("top", `${event.pageY + vis.config.tooltipPadding}px`)
+              .html(`
+                  <div><strong>County:</strong> ${d.properties.county_name || "Unknown"}</div>
+                  <div><strong>State:</strong> ${d.properties.state || "Unknown"}</div>
+                  <div><strong>${vis.selectedAttr1.replace(/_/g, " ")}:</strong> ${d.properties[`original_${vis.selectedAttr1}`] || "N/A"}%</div>
+                  <div><strong>${vis.selectedAttr2.replace(/_/g, " ")}:</strong> ${d.properties[`original_${vis.selectedAttr2}`] || "N/A"}%</div>
+              `);
+      })
+      .on("mouseleave", () => vis.tooltip.style("display", "none"));
 
   // Reset selection when clicking outside the map
   vis.svg.on("click", () => {
-    vis.selectedCounties.clear();
-    vis.updateVis();
-    histogram.updateVis(histogram.data); // Reset histogram
-    scatterplot.updateVis(scatterplot.data);
+      vis.selectedCounties.clear();
+      vis.updateVis(null, false); // Reset, marking this as an external reset
+      histogram.updateVis(histogram.data);
+      scatterplot.updateVis(scatterplot.data);
   });
 
   // Remove county borders and redraw state borders if available
@@ -269,11 +277,12 @@ updateVis(filteredData = null) {
           .attr("id", "state-borders")
           .attr("d", vis.path)
           .attr("fill", "none")
-          .attr("stroke", "none"); // Remove the black outline
+          .attr("stroke", "none");
   } else {
       console.error("State borders data is missing.");
   }
 }
+
 
 
   setSelectedAttributes(attr1, attr2) {

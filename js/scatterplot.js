@@ -56,6 +56,18 @@ class Scatterplot {
           .attr('y', -40)
           .attr('transform', 'rotate(-90)')
           .attr('text-anchor', 'middle');
+
+          document.addEventListener('click', (event) => {
+            const isInsideScatterplot = vis.svg.node().contains(event.target);
+        
+            if (!isInsideScatterplot) {
+                vis.selectedPoints.clear();
+                vis.updateHighlighting();
+                histogram.updateVis(vis.data); // Reset histogram
+                choroplethMap.updateVis(null); // Reset choropleth map
+            }
+        });
+        
   }
 
   updateVis(filteredData = null) {
@@ -106,7 +118,7 @@ class Scatterplot {
           .attr('opacity', d => vis.selectedPoints.size === 0 || vis.selectedPoints.has(d) 
               ? 1 
               : 0.3)
-          .attr('stroke', d => vis.selectedPoints.has(d) ? '#ff5733' : '#368cb2') 
+          .attr('stroke', '#368cb2') 
           .attr('stroke-width', 1.5)
           .on('click', (event, d) => {
             event.stopPropagation();
@@ -135,9 +147,8 @@ class Scatterplot {
       vis.svg.on('click', () => {
         vis.selectedPoints.clear();
         vis.updateHighlighting();
-        histogram.updateVis(vis.data); // Pass full dataset when selection is cleared
-        choroplethmap.updateVis(vis.data); // Pass full dataset when selection is cleared
-        
+        histogram.updateVis(vis.data); // Reset histogram
+        choroplethMap.updateVis(null); // Reset choropleth map properly
     });
 
     // Tooltip behavior
