@@ -151,7 +151,7 @@ class Histogram {
           .on("click", handleBarClick)
           .on("mouseover", (event, d) => {
               tooltip.style("display", "block")
-                  .html(`<strong>Range:</strong> ${d.x0} - ${d.x1}%<br><strong>Count 2:</strong> ${d.count2}`);
+                  .html(`<strong>Range:</strong> ${d.x0} - ${d.x1}%<br><strong>Count:</strong> ${d.count2}`);
           })
           .on("mousemove", event => {
               tooltip.style("left", (event.pageX + 10) + "px")
@@ -181,11 +181,10 @@ class Histogram {
 function updateOtherVisualizations(selectedBins) {
   if (!selectedBins.length) {
       scatterplot.updateVis(data);
-      choroplethMap.updateVis(null); // Reset map to all counties
+      choroplethMap.updateVis(null);
       return;
   }
 
-  // Filter data based on selected histogram bin
   const filteredData = data.filter(d =>
       selectedBins.some(binStart => 
           d.percent_poverty >= binStart && d.percent_poverty < binStart + 5

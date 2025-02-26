@@ -156,10 +156,6 @@ circles.on('mousemove', (event, d) => {
 .on('mouseleave', () => {
   d3.select('#tooltip').style('display', 'none');
 });
-
-
-
-
       vis.xAxisG.call(vis.xAxis).call(g => g.select('.domain').remove());
       vis.yAxisG.call(vis.yAxis).call(g => g.select('.domain').remove());
   }
