@@ -1,77 +1,79 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>D3 Project Starter Template</title>
-    <meta charset="UTF-8">
-    <link rel="icon" href="data:;base64,iVBORwOKGO=" />
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        .main-container {
-            display: flex;
-        }
+    <head>
+        <title>D3 Project Starter Template</title>
+        <meta charset="UTF-8" />
+        <link rel="icon" href="data:;base64,iVBORwOKGO=" />
+        <link rel="stylesheet" href="css/style.css" />
+        <style>
+            .main-container {
+                display: flex;
+            }
 
-        .left-panel {
-            flex: 1;
-        }
+            .left-panel {
+                flex: 1;
+            }
 
-        .right-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100%;  /* Ensure the container has full height */
-        }
+            .right-panel {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+            }
 
-        #histogram {
-            flex: 1;  /* Histogram takes 1 part of the available space */
-            width: 100%;
-            height: 50%;  /* Alternatively, you can set a fixed height, e.g., 50% */
-        }
+            #histogram {
+                flex: 1;
+                width: 100%;
+                height: 50%;
+            }
 
-        #scatterplot {
-            flex: 2;  /* Scatterplot takes the remaining 2 parts of the available space */
-            width: 100%;
-            height: 50%;  /* You can adjust this to make sure the scatterplot takes the remaining space */
-        }
+            #scatterplot {
+                flex: 2;
+                width: 100%;
+                height: 50%;
+            }
 
-        .source {
-            margin-top: 20px;
-        }
-        
-    </style>
-</head>
-<body>    
-    <!-- <h1>Poverty vs Health</h1>
+            .source {
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- <h1>Poverty vs Health</h1>
     <h2>Data from: here</h2> -->
 
-    <div class="main-container">
-        <!-- Left side: Choropleth map -->
-        <div class="left-panel">
-            <div class="viz"></div>
+        <div class="main-container">
+            <div class="left-panel">
+                <div class="viz"></div>
+            </div>
+            <div class="right-panel">
+                <svg id="histogram"></svg>
+                <svg id="scatterplot"></svg>
+            </div>
         </div>
 
-        <!-- Right side: Histogram stacked above Scatterplot -->
-        <div class="right-panel">
-            <svg id="histogram"></svg>
-            <svg id="scatterplot"></svg>
-        </div>
-    </div>
+        <svg height="5" width="5" xmlns="http://www.w3.org/2000/svg" version="1.1">
+            <defs>
+                <pattern id="lightstripe" patternUnits="userSpaceOnUse" width="5" height="5">
+                    <image
+                        xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc1JyBoZWlnaHQ9JzUnPgogIDxyZWN0IHdpZHRoPSc1JyBoZWlnaHQ9JzUnIGZpbGw9J3doaXRlJy8+CiAgPHBhdGggZD0nTTAgNUw1IDBaTTYgNEw0IDZaTS0xIDFMMSAtMVonIHN0cm9rZT0nIzg4OCcgc3Ryb2tlLXdpZHRoPScxJy8+Cjwvc3ZnPg=="
+                        x="0"
+                        y="0"
+                        width="5"
+                        height="5"
+                    ></image>
+                </pattern>
+            </defs>
+        </svg>
 
-    <svg height="5" width="5" xmlns="http://www.w3.org/2000/svg" version="1.1"> 
-        <defs> 
-            <pattern id="lightstripe" patternUnits="userSpaceOnUse" width="5" height="5"> 
-                <image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc1JyBoZWlnaHQ9JzUnPgogIDxyZWN0IHdpZHRoPSc1JyBoZWlnaHQ9JzUnIGZpbGw9J3doaXRlJy8+CiAgPHBhdGggZD0nTTAgNUw1IDBaTTYgNEw0IDZaTS0xIDFMMSAtMVonIHN0cm9rZT0nIzg4OCcgc3Ryb2tlLXdpZHRoPScxJy8+Cjwvc3ZnPg==" x="0" y="0" width="5" height="5"> </image> 
-            </pattern> 
-        </defs>
-    </svg>
+        <div id="tooltip"></div>
 
-    <div id="tooltip"></div>
-
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
-    <script src="js/topojson.v3.js"></script>
-    <script src="js/d3.v6.min.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/choroplethMap.js"></script>
-    <script src="js/scatterplot.js"></script>
-    <script src="js/histogram.js"></script>
-</body>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
+        <script src="js/topojson.v3.js"></script>
+        <script src="js/d3.v6.min.js"></script>
+        <script src="js/main.js"></script>
+        <script src="js/choroplethMap.js"></script>
+        <script src="js/scatterplot.js"></script>
+        <script src="js/histogram.js"></script>
+    </body>
 </html>
